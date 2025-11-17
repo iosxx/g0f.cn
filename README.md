@@ -17,11 +17,12 @@
 2. 点击 "New Issue" 按钮
 3. 选择 "友链申请" 模板
 4. 填写你的博客信息：
-   - 博客名称
-   - 博客地址
-   - 博客描述
-   - 头像地址（或 Gravatar MD5）
-   - 友链分类（friends/experts/groups）
+   - 博客名称（必填）
+   - 博客地址（必填）
+   - 头像地址（必填，或 Gravatar MD5）
+   - 友链分类（必填，friends/experts/groups）
+   - RSS地址（可选）
+   - 博客描述（可选）
 5. 提交 Issue 等待审核
 
 ### 方法二：提交 Pull Request
@@ -52,6 +53,10 @@
   "des": "博客描述"
 }
 ```
+
+注：
+- `des` 字段为可选项
+- 申请时填写的 RSS 地址仅用于审核参考，不会存储到 `links.json` 中
 
 ## 🗂️ 分类说明
 

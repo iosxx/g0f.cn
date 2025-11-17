@@ -83,12 +83,3 @@ body:
           required: true
         - label: 我提供的信息真实有效
           required: true
-
-  - type: textarea
-    id: additional-info
-    attributes:
-      label: 补充说明
-      description: 如有其他需要说明的内容，请在此填写
-      placeholder: 可选填写
-    validations:
-      required: false
