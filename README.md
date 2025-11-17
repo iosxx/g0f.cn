@@ -15,15 +15,14 @@
 
 1. 点击 [Issues](../../issues) 页面
 2. 点击 "New Issue" 按钮
-3. 选择 "友链申请" 模板
-4. 填写你的博客信息：
+3. 填写你的博客信息：
    - 博客名称（必填）
    - 博客地址（必填）
    - 头像地址（必填，或 Gravatar MD5）
    - 友链分类（必填，friends/experts/groups）
    - RSS地址（可选）
    - 博客描述（可选）
-5. 提交 Issue 等待审核
+4. 提交 Issue 等待审核
 
 ### 方法二：提交 Pull Request
 
