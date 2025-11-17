@@ -53,8 +53,12 @@
 #### 步骤 4：测试工作流
 1. 确保 Issue 有 `friendlink` 标签
 2. 评论 `/approve`（注意是小写）
-3. 查看 Actions 运行情况：https://github.com/Jiosanity/xiaoten-links/actions
-4. 检查是否有新的工作流运行记录
+3. 等待几秒钟，`approve-application` job 会添加 `approved` 标签
+4. **添加标签后会自动触发 `process-approved-application` job**
+5. 查看 Actions 运行情况：https://github.com/Jiosanity/xiaoten-links/actions
+6. 应该会看到两个工作流运行：
+   - 第一个：评论触发，运行 `approve-application`
+   - 第二个：标签触发，运行 `process-approved-application`
 
 #### 步骤 5：查看工作流日志
 如果工作流运行了但失败：
@@ -82,6 +86,15 @@ Error: Resource not accessible by integration
 1. GitHub Actions 未启用
 2. 工作流文件有语法错误
 3. Issue 没有 `friendlink` 标签
+
+#### 错误 4：第二个 job 被跳过
+**症状**：`approve-application` 运行成功，但 `process-approved-application` 显示 "skipped"
+**原因**：第二个 job 只在添加 `approved` 标签时触发，需要等待标签事件
+**解决方案**：
+1. 评论 `/approve` 后，等待第一个工作流完成
+2. 第一个工作流会添加 `approved` 标签
+3. 添加标签会触发第二个工作流运行
+4. 在 Actions 页面应该能看到两个独立的工作流运行记录
 
 ## 完整的工作流程
 
