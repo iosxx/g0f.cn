@@ -67,6 +67,7 @@
 
 - 博客主站：https://www.xiaoten.com/
 - 友圈页面：https://www.xiaoten.com/pages/links/
+- 故障排查：[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
 
 ## 📜 许可证
 
