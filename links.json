@@ -1,0 +1,92 @@
+{
+    "friends": [
+        {
+            "name": "茶余饭后",
+            "url": "https://q.chyfh.com/",
+            "src": "https://q.chyfh.com/wp-content/uploads/2019/07/q.chyfh_.png",
+            "des": "谢馆秦楼，散闷消愁。"
+        },
+        {
+            "name": "MouT.me",
+            "url": "https://mout.me/",
+            "md5": "678bf8cb50938b0e3a252e0509455d10",
+            "des": "MouT.me"
+        },
+        {
+            "name": "Hello Alili",
+            "url": "https://alili.tech/",
+            "src": "https://cdn.xiaoten.com/friends/alili.png",
+            "des": ""
+        },
+        {
+            "name": "小十的朋友圈",
+            "url": "https://jiaohuiming.cn/",
+            "src": "https://cdn.xiaoten.com/people-circle.svg",
+            "des": ""
+        },
+        {
+            "name": "老孙博客",
+            "url": "https://www.imsun.org/",
+            "src": "https://cravatar.cn/avatar/14361cbdd724071a19e158bdf0aa8841?s=80&d=identicon",
+            "des": ""
+        },
+        {
+            "name": "黑石博客",
+            "url": "https://heson.me/",
+            "src": "https://cravatar.cn/avatar/fc2c9b067f65c9e2d7057ba797f7cfca",
+            "des": ""
+        },
+        {
+            "name": "王叨叨",
+            "url": "https://wangdaodao.com/",
+            "src": "https://cdn.xiaoten.com/friends/wangdaodao.png",
+            "des": "无叨叨，不博客！不懂用户体验的前端不是好爸爸……"
+        },
+        {
+            "name": "Jame",
+            "url": "https://jame.work",
+            "src": "https://jame.work/favicon.ico",
+            "des": "随笔"
+        },
+        {
+            "name": "SUUS",
+            "url": "https://suus.me/",
+            "src": "https://suus.me/icons/favicon.svg",
+            "des": "关于这个博客，你应该知道的第一件事是，这是我为自己所写的博客。"
+        },
+        {
+            "name": "手里有只毛毛虫",
+            "url": "https://www.krjojo.com/",
+            "src": "https://www.krjojo.com/wp-content/uploads/2024/05/avatar.avif",
+            "des": "号角声起 - 等你启航"
+        },
+        {
+            "name": "雅余",
+            "url": "https://yayu.net/",
+            "src": "https://yayu.net/wp-content/themes/yayu/assets/images/logo.png",
+            "des": "茶余饭后，闲情雅致"
+        }
+    ],
+    "experts": [
+        {
+            "name": "Wandai Blog",
+            "url": "https://twd2.me/",
+            "src": "https://twd2.me/smile_photo.jpg",
+            "des": ""
+        },
+        {
+            "name": "木木木木木",
+            "url": "https://immmmm.com/",
+            "src": "https://gravatar.memobbs.app/avatar/ba83fa02fc4b2ba621514941307e21be?s=80",
+            "des": ""
+        }
+    ],
+    "groups": [
+        {
+            "name": "博客中心",
+            "url": "https://bokehub.com/",
+            "src": "https://bokehub.com/assets/images/sites/logo/logo-small.png",
+            "des": ""
+        }
+    ]
+}

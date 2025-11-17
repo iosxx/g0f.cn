@@ -1,0 +1,175 @@
+name: Process Friendlink Application
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  process-application:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'friendlink')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse issue and update links.json
+        id: parse-issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const issue = context.payload.issue;
+            
+            // 检查是否是批准评论
+            if (context.eventName === 'issue_comment') {
+              const comment = context.payload.comment;
+              const commentBody = comment.body.toLowerCase();
+              
+              // 只有仓库所有者或协作者可以批准
+              const isApprover = ['OWNER', 'COLLABORATOR', 'MEMBER'].includes(comment.author_association);
+              
+              if (!isApprover || !commentBody.includes('/approve')) {
+                console.log('Not an approval comment or not from an authorized user');
+                return;
+              }
+              
+              // 添加 approved 标签
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['approved']
+              });
+              
+              // 移除 pending 标签
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  name: 'pending'
+                });
+              } catch (error) {
+                console.log('Pending label not found');
+              }
+            }
+            
+            // 只处理已批准的申请
+            if (!issue.labels.some(label => label.name === 'approved')) {
+              console.log('Issue not approved yet');
+              return;
+            }
+            
+            // 解析 Issue 内容
+            const body = issue.body;
+            
+            // 提取表单数据（针对 YAML 表单格式）
+            const extractField = (fieldName) => {
+              const regex = new RegExp(`### ${fieldName}\\s*([\\s\\S]*?)(?=###|$)`, 'i');
+              const match = body.match(regex);
+              return match ? match[1].trim() : '';
+            };
+            
+            const blogName = extractField('博客名称');
+            const blogUrl = extractField('博客地址');
+            const blogDescription = extractField('博客描述');
+            const avatarInput = extractField('头像地址');
+            const categoryRaw = extractField('友链分类');
+            
+            // 解析分类
+            let category = 'friends';
+            if (categoryRaw.includes('experts')) {
+              category = 'experts';
+            } else if (categoryRaw.includes('groups')) {
+              category = 'groups';
+            }
+            
+            // 解析头像
+            let avatarData = {};
+            if (avatarInput.startsWith('md5:')) {
+              avatarData.md5 = avatarInput.replace('md5:', '').trim();
+            } else {
+              avatarData.src = avatarInput.trim();
+            }
+            
+            // 构建友链对象
+            const newLink = {
+              name: blogName,
+              url: blogUrl,
+              ...avatarData,
+              des: blogDescription
+            };
+            
+            // 读取现有的 links.json
+            const linksData = JSON.parse(fs.readFileSync('links.json', 'utf8'));
+            
+            // 检查是否已存在
+            const categoryLinks = linksData[category] || [];
+            const exists = categoryLinks.some(link => link.url === blogUrl);
+            
+            if (exists) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: '⚠️ 该博客链接已存在于友链列表中！'
+              });
+              return;
+            }
+            
+            // 添加新友链
+            categoryLinks.push(newLink);
+            linksData[category] = categoryLinks;
+            
+            // 写入文件
+            fs.writeFileSync('links.json', JSON.stringify(linksData, null, 4) + '\n');
+            
+            // 设置输出变量
+            core.setOutput('updated', 'true');
+            core.setOutput('blog_name', blogName);
+            core.setOutput('category', category);
+
+      - name: Create Pull Request
+        if: steps.parse-issue.outputs.updated == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Add friendlink: ${{ steps.parse-issue.outputs.blog_name }}"
+          branch: friendlink-${{ github.event.issue.number }}
+          delete-branch: true
+          title: "Add friendlink: ${{ steps.parse-issue.outputs.blog_name }}"
+          body: |
+            ## 友链申请自动处理
+            
+            此 PR 由 GitHub Actions 自动生成，用于添加新的友链。
+            
+            **来源 Issue:** #${{ github.event.issue.number }}
+            **博客名称:** ${{ steps.parse-issue.outputs.blog_name }}
+            **分类:** ${{ steps.parse-issue.outputs.category }}
+            
+            请检查 `links.json` 的变更是否正确。
+            
+            合并后，请在 Issue 中添加评论通知申请者。
+          labels: friendlink,auto-pr
+
+      - name: Comment on Issue
+        if: steps.parse-issue.outputs.updated == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ 友链申请已处理，自动 PR 已创建！请等待仓库维护者审核并合并。'
+            });

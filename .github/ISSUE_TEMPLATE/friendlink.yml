@@ -1,0 +1,90 @@
+name: 友链申请
+description: 申请添加你的博客到友链列表
+title: "[友链申请] "
+labels: ["friendlink", "pending"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📝 友链申请
+        
+        感谢你的友链申请！请填写以下信息。
+        
+        **小十博客友链信息：**
+        - 名称：小十的个人博客 或 小十博客
+        - 描述：十分之十的小十
+        - URL：https://www.xiaoten.com/
+        - 头像：https://www.xiaoten.com/avatar.png
+
+  - type: input
+    id: blog-name
+    attributes:
+      label: 博客名称
+      description: 你的博客名称
+      placeholder: 例如：小十博客
+    validations:
+      required: true
+
+  - type: input
+    id: blog-url
+    attributes:
+      label: 博客地址
+      description: 你的博客完整URL地址
+      placeholder: https://www.example.com/
+    validations:
+      required: true
+
+  - type: textarea
+    id: blog-description
+    attributes:
+      label: 博客描述
+      description: 简短描述你的博客（不超过50字）
+      placeholder: 这是一个关于技术和生活的博客
+    validations:
+      required: true
+
+  - type: input
+    id: blog-avatar
+    attributes:
+      label: 头像地址
+      description: 提供头像URL或Gravatar MD5哈希
+      placeholder: https://www.example.com/avatar.png 或 md5:abc123...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 友链分类
+      description: 选择适合的分类
+      options:
+        - friends (朋友)
+        - experts (大佬)
+        - groups (团体)
+      default: 0
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: 确认事项
+      description: 请确认以下事项
+      options:
+        - label: 我的博客内容积极向上，无违法违规内容
+          required: true
+        - label: 我的博客可以正常访问
+          required: true
+        - label: 我已在我的博客添加了小十博客的友链
+          required: true
+        - label: 我提供的信息真实有效
+          required: true
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: 补充说明
+      description: 如有其他需要说明的内容，请在此填写
+      placeholder: 可选填写
+    validations:
+      required: false

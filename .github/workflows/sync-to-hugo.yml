@@ -1,0 +1,62 @@
+name: Sync to Hugo Site
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'links.json'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout links repository
+        uses: actions/checkout@v4
+      
+      - name: Trigger Hugo site rebuild
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.HUGO_SITE_PAT }}
+          script: |
+            // 方式一：如果 Hugo 站点是公开仓库，可以触发 repository_dispatch
+            await github.rest.repos.createDispatchEvent({
+              owner: 'Jiosanity',
+              repo: 'hugo-xiaoten-com',
+              event_type: 'links-updated',
+              client_payload: {
+                source: 'links-repo',
+                timestamp: new Date().toISOString()
+              }
+            });
+            
+            console.log('Triggered Hugo site rebuild');
+      
+      - name: Comment on related PR
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, 'friendlink')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commitMessage = context.payload.head_commit.message;
+            const issueMatch = commitMessage.match(/#(\d+)/);
+            
+            if (issueMatch) {
+              const issueNumber = parseInt(issueMatch[1]);
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: '🎉 友链已成功添加并同步到博客站点！\n\n可以访问 https://www.xiaoten.com/pages/links/ 查看。\n\n感谢你的申请！'
+              });
+              
+              // 关闭 Issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                state: 'closed'
+              });
+            }
