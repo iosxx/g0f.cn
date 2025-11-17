@@ -85,10 +85,8 @@ jobs:
   process-approved-application:
     runs-on: ubuntu-latest
     if: |
-      github.event_name == 'issues' &&
-      github.event.action == 'labeled' &&
-      contains(github.event.issue.labels.*.name, 'friendlink') &&
-      contains(github.event.issue.labels.*.name, 'approved')
+      (github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == 'approved') &&
+      contains(github.event.issue.labels.*.name, 'friendlink')
     
     steps:
       - name: Checkout repository
