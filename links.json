@@ -113,6 +113,12 @@
             "url": "https://wang618.cn/",
             "src": "https://wang618.cn/logo.gif",
             "des": "好好学习，天天向上↑"
+        },
+        {
+            "name": "Evan",
+            "url": "https://www.evan.xin/",
+            "src": "https://www.evan.xin/logo.png",
+            "des": ""
         }
     ],
     "experts": [
@@ -156,12 +162,6 @@
             "name": "Jack's Space",
             "url": "https://veryjack.com/",
             "src": "https://veryjack.com/wp-content/uploads/2025/05/avatar_transparant-150x150.webp",
-            "des": ""
-        },
-        {
-            "name": "Evan",
-            "url": "https://www.evan.xin/",
-            "src": "https://www.evan.xin/logo.png",
             "des": ""
         }
     ],
