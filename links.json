@@ -213,6 +213,12 @@
             "url": "https://bf.zzxworld.com/",
             "src": "https://bf.zzxworld.com/images/favicon.png",
             "des": "_No response_"
+        },
+        {
+            "name": "BlogsClub",
+            "url": "https://www.blogsclub.org/",
+            "src": "https://www.blogsclub.org/usr/themes/default/favicon.png",
+            "des": "BlogsClub是一个互联网独立博客俱乐部"
         }
     ]
 }
