@@ -1,82 +1,59 @@
-name: 友链申请处理
+name: 自动添加友链
 
 on:
   issues:
-    types: [labeled]
+    types: [closed]
 
 jobs:
-  add-friendlink:
-    if: github.event.label.name == 'approved'
+  add-friend-link:
+    if: github.event.issue.state_reason == 'completed'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       issues: write
-      pull-requests: write
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 解析友链信息
+      - name: 解析 Issue 内容
         id: parse
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const body = context.payload.issue.body;
-            const nameMatch = body.match(/###\s*站点名称\s*([^\n]+)/);
-            const urlMatch = body.match(/###\s*站点地址\s*([^\n]+)/);
-            const descMatch = body.match(/###\s*站点描述\s*([^\n]+)/);
-            const avatarMatch = body.match(/###\s*站点图标\s*([^\n]+)/);
-            
-            if (!nameMatch || !urlMatch) {
-              core.setFailed('无法解析友链信息');
-              return;
-            }
-            
-            core.setOutput('name', nameMatch[1].trim());
-            core.setOutput('url', urlMatch[1].trim());
-            core.setOutput('desc', descMatch ? descMatch[1].trim() : '');
-            core.setOutput('avatar', avatarMatch ? avatarMatch[1].trim() : '');
-
-      - name: 添加友链
         run: |
-          name="${{ steps.parse.outputs.name }}"
-          url="${{ steps.parse.outputs.url }}"
-          desc="${{ steps.parse.outputs.desc }}"
-          avatar="${{ steps.parse.outputs.avatar }}"
+          BODY="${{ github.event.issue.body }}"
+          NAME=$(echo "$BODY" | grep -oP '(?<=### 网站名称\s{0,10})[^\n]+' | xargs)
+          URL=$(echo "$BODY" | grep -oP '(?<=### 网站地址\s{0,10})[^\n]+' | xargs)
+          DESC=$(echo "$BODY" | grep -oP '(?<=### 网站描述\s{0,10})[^\n]+' | xargs)
+          AVATAR=$(echo "$BODY" | grep -oP '(?<=### 网站图标\s{0,10})[^\n]+' | xargs)
           
-          # 读取现有友链
-          if [ ! -f "src/data/friends.json" ]; then
-            echo '[]' > src/data/friends.json
-          fi
-          
-          # 添加新友链
-          jq --arg name "$name" --arg url "$url" --arg desc "$desc" --arg avatar "$avatar" \
-            '. += [{"name": $name, "url": $url, "desc": $desc, "avatar": $avatar}]' \
-            src/data/friends.json > tmp.json
-          mv tmp.json src/data/friends.json
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "desc=$DESC" >> $GITHUB_OUTPUT
+          echo "avatar=$AVATAR" >> $GITHUB_OUTPUT
+
+      - name: 添加友链到 JSON
+        run: |
+          jq --arg name "${{ steps.parse.outputs.name }}" \
+             --arg url "${{ steps.parse.outputs.url }}" \
+             --arg desc "${{ steps.parse.outputs.desc }}" \
+             --arg avatar "${{ steps.parse.outputs.avatar }}" \
+             '. += [{"name": $name, "link": $url, "descr": $desc, "avatar": $avatar}]' \
+             links.json > tmp.json && mv tmp.json links.json
 
       - name: 提交更改
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add src/data/friends.json
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add links.json
           git commit -m "添加友链: ${{ steps.parse.outputs.name }}"
           git push
 
-      - name: 关闭 Issue
+      - name: 评论 Issue
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.issues.createComment({
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: '✅ 友链已添加！感谢您的申请。'
-            });
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed'
-            });
+              body: '✅ 友链已自动添加！感谢您的申请。'
+            })
