@@ -32,14 +32,11 @@ jobs:
 
       - name: 添加友链到 JSON
         run: |
-          if [ ! -f "links.json" ]; then
-            echo '[]' > links.json
-          fi
           jq --arg name "${{ steps.parse.outputs.name }}" \
              --arg url "${{ steps.parse.outputs.url }}" \
              --arg desc "${{ steps.parse.outputs.desc }}" \
              --arg avatar "${{ steps.parse.outputs.avatar }}" \
-             '. += [{"name": $name, "link": $url, "descr": $desc, "avatar": $avatar}]' \
+             '.friends += [{"name": $name, "url": $url, "src": $avatar, "des": $desc}]' \
              links.json > tmp.json && mv tmp.json links.json
 
       - name: 提交更改
