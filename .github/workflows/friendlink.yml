@@ -1,0 +1,82 @@
+name: 友链申请处理
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  add-friendlink:
+    if: github.event.label.name == 'approved'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 解析友链信息
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body;
+            const nameMatch = body.match(/###\s*站点名称\s*([^\n]+)/);
+            const urlMatch = body.match(/###\s*站点地址\s*([^\n]+)/);
+            const descMatch = body.match(/###\s*站点描述\s*([^\n]+)/);
+            const avatarMatch = body.match(/###\s*站点图标\s*([^\n]+)/);
+            
+            if (!nameMatch || !urlMatch) {
+              core.setFailed('无法解析友链信息');
+              return;
+            }
+            
+            core.setOutput('name', nameMatch[1].trim());
+            core.setOutput('url', urlMatch[1].trim());
+            core.setOutput('desc', descMatch ? descMatch[1].trim() : '');
+            core.setOutput('avatar', avatarMatch ? avatarMatch[1].trim() : '');
+
+      - name: 添加友链
+        run: |
+          name="${{ steps.parse.outputs.name }}"
+          url="${{ steps.parse.outputs.url }}"
+          desc="${{ steps.parse.outputs.desc }}"
+          avatar="${{ steps.parse.outputs.avatar }}"
+          
+          # 读取现有友链
+          if [ ! -f "src/data/friends.json" ]; then
+            echo '[]' > src/data/friends.json
+          fi
+          
+          # 添加新友链
+          jq --arg name "$name" --arg url "$url" --arg desc "$desc" --arg avatar "$avatar" \
+            '. += [{"name": $name, "url": $url, "desc": $desc, "avatar": $avatar}]' \
+            src/data/friends.json > tmp.json
+          mv tmp.json src/data/friends.json
+
+      - name: 提交更改
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/data/friends.json
+          git commit -m "添加友链: ${{ steps.parse.outputs.name }}"
+          git push
+
+      - name: 关闭 Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ 友链已添加！感谢您的申请。'
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });
