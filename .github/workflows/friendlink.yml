@@ -20,10 +20,10 @@ jobs:
         id: parse
         run: |
           BODY="${{ github.event.issue.body }}"
-          NAME=$(echo "$BODY" | grep -oP '(?<=### 网站名称\s{0,10})[^\n]+' | xargs)
-          URL=$(echo "$BODY" | grep -oP '(?<=### 网站地址\s{0,10})[^\n]+' | xargs)
-          DESC=$(echo "$BODY" | grep -oP '(?<=### 网站描述\s{0,10})[^\n]+' | xargs)
-          AVATAR=$(echo "$BODY" | grep -oP '(?<=### 网站图标\s{0,10})[^\n]+' | xargs)
+          NAME=$(echo "$BODY" | grep -oP '(?<=### 网站名称\s*)[^\n]+' | xargs)
+          URL=$(echo "$BODY" | grep -oP '(?<=### 网站地址\s*)[^\n]+' | xargs)
+          DESC=$(echo "$BODY" | grep -oP '(?<=### 网站描述\s*)[^\n]+' | xargs)
+          AVATAR=$(echo "$BODY" | grep -oP '(?<=### 网站图标\s*)[^\n]+' | xargs)
           
           echo "name=$NAME" >> $GITHUB_OUTPUT
           echo "url=$URL" >> $GITHUB_OUTPUT
@@ -32,6 +32,9 @@ jobs:
 
       - name: 添加友链到 JSON
         run: |
+          if [ ! -f "links.json" ]; then
+            echo '[]' > links.json
+          fi
           jq --arg name "${{ steps.parse.outputs.name }}" \
              --arg url "${{ steps.parse.outputs.url }}" \
              --arg desc "${{ steps.parse.outputs.desc }}" \
