@@ -27,13 +27,13 @@ jobs:
       
       - name: Sync links.json to Hugo site
         run: |
-          # 复制 links.json 到 Hugo 站点的 data 目录
-          mkdir -p hugo-site/data
-          cp links-repo/links.json hugo-site/data/links.json
+          # 复制 links.json 到 Hugo 站点的 static 目录
+          mkdir -p hugo-site/static
+          cp links-repo/links.json hugo-site/static/links.json
           
           # 检查是否有变化
           cd hugo-site
-          if git diff --quiet data/links.json; then
+          if git diff --quiet static/links.json; then
             echo "No changes in links.json"
             echo "has_changes=false" >> $GITHUB_ENV
           else
@@ -47,7 +47,7 @@ jobs:
           cd hugo-site
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/links.json
+          git add static/links.json
           git commit -m "chore: sync links.json from g0f.cn repository"
           git push
       
