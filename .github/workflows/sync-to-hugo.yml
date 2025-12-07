@@ -1,0 +1,84 @@
+name: Sync to Hugo Site
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'links.json'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout links repository
+        uses: actions/checkout@v4
+        with:
+          path: links-repo
+      
+      - name: Checkout Hugo site repository
+        uses: actions/checkout@v4
+        with:
+          repository: iosxx/notion-hugo-deploy
+          token: ${{ secrets.HUGO_SITE_PAT }}
+          path: hugo-site
+      
+      - name: Sync links.json to Hugo site
+        run: |
+          # 复制 links.json 到 Hugo 站点的 data 目录
+          mkdir -p hugo-site/data
+          cp links-repo/links.json hugo-site/data/links.json
+          
+          # 检查是否有变化
+          cd hugo-site
+          if git diff --quiet data/links.json; then
+            echo "No changes in links.json"
+            echo "has_changes=false" >> $GITHUB_ENV
+          else
+            echo "Changes detected in links.json"
+            echo "has_changes=true" >> $GITHUB_ENV
+          fi
+      
+      - name: Commit and push changes
+        if: env.has_changes == 'true'
+        run: |
+          cd hugo-site
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/links.json
+          git commit -m "chore: sync links.json from g0f.cn repository"
+          git push
+      
+      - name: Comment on related PR
+        if: env.has_changes == 'true' && github.event_name == 'push' && contains(github.event.head_commit.message, 'friendlink')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commitMessage = context.payload.head_commit.message;
+            const issueMatch = commitMessage.match(/#(\d+)/);
+            
+            if (issueMatch) {
+              const issueNumber = parseInt(issueMatch[1]);
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: '🎉 友链已成功添加并同步到博客站点！\n\n数据已自动推送到 Hugo 站点仓库，站点正在重新构建中...\n\n感谢你的申请！'
+              });
+              
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                state: 'closed'
+              });
+            }
+      
+      - name: Notify sync completion
+        if: env.has_changes == 'true'
+        run: |
+          echo "✅ links.json has been synced to notion-hugo-deploy repository"
+          echo "🚀 Hugo site deployment workflow will be triggered automatically"
