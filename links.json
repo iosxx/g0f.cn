@@ -1,5 +1,12 @@
 {
-    "friends": [],
+    "friends": [
+        {
+            "name": "果粉圈",
+            "url": "https://g0f.cn",
+            "src": "https://tofuwine.github.io/images/profile.png",
+            "des": "不错"
+        }
+    ],
     "experts": [],
     "groups": [
         {
