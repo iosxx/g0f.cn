@@ -1,0 +1,248 @@
+name: Process Friendlink Application
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  process-friendlink:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.issue.labels.*.name, '友情链接')) ||
+      (github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == '已批准' && contains(github.event.issue.labels.*.name, '友情链接'))
+    
+    steps:
+      - name: Check and approve application
+        if: github.event_name == 'issue_comment'
+        id: approval
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = context.payload.comment;
+            const commentBody = comment.body.toLowerCase().trim();
+            
+            if (!commentBody.includes('/approve')) {
+              console.log('Comment does not contain /approve command');
+              core.setOutput('approved', 'false');
+              return;
+            }
+            
+            const hasApproved = context.payload.issue.labels.some(label => label.name === '已批准');
+            if (hasApproved) {
+              console.log('Issue already has approved label');
+              core.setOutput('approved', 'true');
+              return;
+            }
+            
+            const isApprover = ['OWNER', 'COLLABORATOR', 'MEMBER'].includes(comment.author_association);
+            
+            if (!isApprover) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '❌ 抱歉，只有仓库维护者可以批准友链申请。'
+              });
+              core.setOutput('approved', 'false');
+              return;
+            }
+            
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['已批准']
+            });
+            
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: '待处理'
+              });
+            } catch (error) {
+              console.log('待处理 label not found');
+            }
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ 友链申请已批准！正在自动处理...'
+            });
+            
+            core.setOutput('approved', 'true');
+
+      - name: Checkout repository
+        if: |
+          (github.event_name == 'issue_comment') ||
+          (github.event_name == 'issues' && github.event.action == 'labeled')
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Parse issue and update links.json
+        if: |
+          (github.event_name == 'issue_comment') ||
+          (github.event_name == 'issues' && github.event.action == 'labeled')
+        id: parse-issue
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            const fs = require('fs');
+            
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const hasApproved = issue.labels.some(label => label.name === '已批准');
+            if (!hasApproved) {
+              console.log('Issue does not have approved label yet');
+              return JSON.stringify({ updated: false });
+            }
+            
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number
+            });
+            
+            const alreadyProcessed = comments.data.some(c => 
+              c.body.includes('友链申请已处理，自动 PR 已创建')
+            );
+            
+            if (alreadyProcessed) {
+              console.log('Already processed');
+              return JSON.stringify({ updated: false });
+            }
+            
+            const body = issue.body;
+            
+            const extractField = (fieldName) => {
+              const regex = new RegExp(`### ${fieldName}\\s*([\\s\\S]*?)(?=###|$)`, 'i');
+              const match = body.match(regex);
+              return match ? match[1].trim() : '';
+            };
+            
+            const blogName = extractField('博客名称');
+            const blogUrl = extractField('博客地址');
+            const blogDescription = extractField('博客描述');
+            const avatarInput = extractField('头像地址');
+            const categoryRaw = extractField('友链分类');
+            
+            if (!blogName || !blogUrl) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: '❌ 错误：缺少必填字段（博客名称或博客地址）。'
+              });
+              return JSON.stringify({ updated: false });
+            }
+            
+            let category = 'friends';
+            if (categoryRaw.includes('experts') || categoryRaw.includes('大佬')) {
+              category = 'experts';
+            } else if (categoryRaw.includes('groups') || categoryRaw.includes('团体')) {
+              category = 'groups';
+            }
+            
+            let avatarData = {};
+            if (avatarInput.startsWith('md5:')) {
+              avatarData.md5 = avatarInput.replace('md5:', '').trim();
+            } else if (avatarInput) {
+              avatarData.src = avatarInput.trim();
+            }
+            
+            const newLink = {
+              name: blogName,
+              url: blogUrl,
+              ...avatarData,
+              des: blogDescription || ''
+            };
+            
+            const linksData = JSON.parse(fs.readFileSync('links.json', 'utf8'));
+            
+            const categoryLinks = linksData[category] || [];
+            const exists = categoryLinks.some(link => link.url === blogUrl);
+            
+            if (exists) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: '⚠️ 该博客链接已存在于友链列表中！'
+              });
+              return JSON.stringify({ updated: false });
+            }
+            
+            categoryLinks.push(newLink);
+            linksData[category] = categoryLinks;
+            
+            fs.writeFileSync('links.json', JSON.stringify(linksData, null, 4) + '\n');
+            
+            return JSON.stringify({
+              updated: true,
+              blog_name: blogName,
+              category: category
+            });
+
+      - name: Set outputs
+        id: outputs
+        shell: bash
+        run: |
+          result='${{ steps.parse-issue.outputs.result }}'
+          if [ "$result" != "" ]; then
+            updated=$(echo $result | jq -r '.updated // "false"')
+            blog_name=$(echo $result | jq -r '.blog_name // ""')
+            category=$(echo $result | jq -r '.category // ""')
+            echo "updated=$updated" >> $GITHUB_OUTPUT
+            echo "blog_name=$blog_name" >> $GITHUB_OUTPUT
+            echo "category=$category" >> $GITHUB_OUTPUT
+          else
+            echo "updated=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.outputs.outputs.updated == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Add friendlink: ${{ steps.outputs.outputs.blog_name }}"
+          branch: friendlink-${{ github.event.issue.number }}
+          delete-branch: true
+          title: "Add friendlink: ${{ steps.outputs.outputs.blog_name }}"
+          body: |
+            ## 友链申请自动处理
+            
+            此 PR 由 GitHub Actions 自动生成。
+            
+            **来源 Issue:** #${{ github.event.issue.number }}
+            **博客名称:** ${{ steps.outputs.outputs.blog_name }}
+            **分类:** ${{ steps.outputs.outputs.category }}
+            
+            合并后，友链数据会自动同步到博客站点。
+          labels: 友情链接,自动PR
+
+      - name: Comment on Issue
+        if: steps.outputs.outputs.updated == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ 友链申请已处理，自动 PR 已创建！\n\n请检查 Pull Request 并合并，合并后将自动同步到博客站点。'
+            });
