@@ -29,7 +29,7 @@ jobs:
         run: |
           # 复制 links.json 到 Hugo 站点的 static 目录
           mkdir -p hugo-site/static
-          cp links-repo/links.json hugo-site/static/links.json
+          cp links-repo/links.json hugo-site/data/links.json
           
           # 检查是否有变化（包括新文件）
           cd hugo-site
